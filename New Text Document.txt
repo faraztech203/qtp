@@ -1,0 +1,118 @@
+
+<?php
+$conn = new mysqli("localhost", "root", "", "school");
+
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+// DELETE student
+if (isset($_GET['delete'])) {
+    $id = (int)$_GET['delete'];
+
+    $stmt = $conn->prepare("DELETE FROM Students WHERE StudentID=?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+
+    header("Location: students.php");
+    exit();
+}
+
+// UPDATE student
+if (isset($_POST['update'])) {
+    $id = (int)$_POST['StudentID'];
+    $name = $_POST['FullName'];
+    $email = $_POST['Email'];
+
+    $stmt = $conn->prepare(
+        "UPDATE Students SET FullName=?, Email=? WHERE StudentID=?"
+    );
+    $stmt->bind_param("ssi", $name, $email, $id);
+    $stmt->execute();
+
+    header("Location: students.php");
+    exit();
+}
+
+// GET student for editing
+$edit = null;
+
+if (isset($_GET['edit'])) {
+    $id = (int)$_GET['edit'];
+
+    $stmt = $conn->prepare("SELECT * FROM Students WHERE StudentID=?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+
+    $edit = $stmt->get_result()->fetch_assoc();
+}
+?>
+
+<h2>Student Records</h2>
+
+<?php if ($edit) { ?>
+
+    <h3>Edit Student</h3>
+
+    <form method="POST">
+        <input type="hidden" name="StudentID"
+               value="<?= $edit['StudentID'] ?>">
+
+        Full Name:
+        <input type="text" name="FullName"
+               value="<?= htmlspecialchars($edit['FullName']) ?>" required>
+
+        <br><br>
+
+        Email:
+        <input type="email" name="Email"
+               value="<?= htmlspecialchars($edit['Email']) ?>" required>
+
+        <br><br>
+
+        <button type="submit" name="update">Update</button>
+    </form>
+
+    <hr>
+
+<?php } ?>
+
+<table border="1" cellpadding="10">
+    <tr>
+        <th>Student ID</th>
+        <th>Full Name</th>
+        <th>Email</th>
+        <th>Actions</th>
+    </tr>
+
+    <?php
+    $result = $conn->query(
+        "SELECT StudentID, FullName, Email FROM Students"
+    );
+
+    while ($row = $result->fetch_assoc()) {
+    ?>
+
+    <tr>
+        <td><?= htmlspecialchars($row['StudentID']) ?></td>
+        <td><?= htmlspecialchars($row['FullName']) ?></td>
+        <td><?= htmlspecialchars($row['Email']) ?></td>
+
+        <td>
+            <a href="students.php?edit=<?= $row['StudentID'] ?>">
+                Edit
+            </a>
+
+            |
+
+            <a href="students.php?delete=<?= $row['StudentID'] ?>"
+               onclick="return confirm('Are you sure you want to delete?')">
+                Delete
+            </a>
+        </td>
+    </tr>
+
+    <?php } ?>
+</table>
+
+<?php $conn->close(); ?>
